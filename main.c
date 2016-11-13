@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <ncurses.h>
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 #define SCREEN_WIDTH  80
 #define SCREEN_HEIGHT 40
 
@@ -16,16 +19,58 @@ struct object {
 struct tile {
   char ch;
   short blocked;
-  short blocked_sight;
+  short block_sight;
 };
 /* global map */
 struct tile map[MAP_HEIGHT][MAP_WIDTH];
+
+struct rect {
+  int x1;
+  int y1;
+  int x2;
+  int y2;
+};
+
+struct rect create_rect(int x, int y, int w, int h)
+{
+  struct rect r = { x, y, x + w, y + h };
+  return r;
+}
+
+void create_room(struct rect room)
+{
+  int i, j;
+  for (i = room.y1; i < room.y2; i++) {
+    for (j = room.x1; j < room.x2; j++) {
+      map[i][j].blocked = 0;
+      map[i][j].block_sight = 0;
+    }
+  }
+}
+
+void create_h_tunnel(int x1, int x2, int y)
+{
+  int i;
+  for (i = min(x1, x2); i < max(x1, x2); i++) {
+    map[y][i].blocked = 0;
+    map[y][i].block_sight = 0;
+  }
+}
+
+void create_v_tunnel(int y1, int y2, int x)
+{
+  int i;
+  for (i = min(y1, y2); i < max(y1, y2); i++) {
+    map[i][x].blocked = 0;
+    map[i][x].block_sight = 0;
+  }
+}
 
 void map_make()
 {
   int i, j;
 
-  struct tile base_tile = { '.', 0, 0 };
+  struct tile base_tile = { '#', 1, 1 };
 
   for (i = 0; i < MAP_HEIGHT; i++) {
     for (j = 0; j < MAP_WIDTH; j++) {
@@ -33,21 +78,29 @@ void map_make()
     }
   }
 
-  map[10][10].ch = '#';
-  map[10][10].blocked = 1;
-  map[10][10].blocked_sight = 1;
-  map[15][10].ch = '#';
-  map[15][10].blocked = 1;
-  map[15][10].blocked_sight = 1;
+  struct rect room1 = create_rect(4, 5, 15, 5);
+  struct rect room2 = create_rect(1, 1, 5, 5);
+  struct rect room3 = create_rect(30, 12, 10, 10);
+  create_room(room1);
+  create_room(room2);
+  create_room(room3);
 
+  create_h_tunnel(6, 35, 6);
+  create_v_tunnel(6, 18, 35);
 }
 
 void map_draw(WINDOW *win)
 {
   int i, j;
+  int wall;
+
   for (i = 0; i < MAP_HEIGHT; i++) {
     for (j = 0; j < MAP_WIDTH; j++) {
-      mvwaddch(win, i, j, map[i][j].ch);
+      wall = map[i][j].blocked;
+      if (wall)
+        mvwaddch(win, i, j, '#');
+      else
+        mvwaddch(win, i, j, '.');
     }
   }
 }
@@ -148,11 +201,11 @@ int main(int argc, char *argv[]) {
 
   WINDOW *con;
 
-  int playerx = MAP_WIDTH / 2;
-  int playery = MAP_HEIGHT / 2;
+  int playerx = 10;
+  int playery = 8;
 
   struct object player = { playerx, playery, '@' };
-  struct object npc = { playerx, playery - 5, '@' };
+  struct object npc = { 3, 4, '@' };
 
   struct object *objects[] = {&npc, &player};
   int object_count = sizeof(objects) / sizeof(struct object *);
