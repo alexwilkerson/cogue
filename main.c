@@ -14,6 +14,7 @@ struct object {
   int x;
   int y;
   char ch;
+  int color;
 };
 
 struct tile {
@@ -117,7 +118,9 @@ void object_move(struct object *o, int x, int y) {
 }
 
 void object_draw(WINDOW *win, struct object *o) {
+  wattron(win, COLOR_PAIR(o->color));
   mvwaddch(win, o->y, o->x, o->ch);
+  wattroff(win, COLOR_PAIR(o->color));
 }
 
 void object_clear(WINDOW *win, struct object *o) {
@@ -132,10 +135,14 @@ void screen_setup()
   // nodelay(stdscr, TRUE); // prevents pausing for getch()
   keypad(stdscr, TRUE); // enables use of function keys (F1, F2, ...)
   curs_set(0); // makes cursor invisible
-  /* start_color(); */
+  start_color();
 
   /* color definitions */
-  /* init_pair(1, COLOR_RED, 0); */
+  init_pair(1, COLOR_WHITE, COLOR_BLACK);
+  init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+  init_pair(3, COLOR_GREEN, COLOR_BLACK);
+  bkgd(COLOR_PAIR(1));
+  refresh();
 }
 
 int handle_keys(WINDOW *con, struct object *p)
@@ -204,8 +211,8 @@ int main(int argc, char *argv[]) {
   int playerx = 10;
   int playery = 8;
 
-  struct object player = { playerx, playery, '@' };
-  struct object npc = { 3, 4, '@' };
+  struct object player = { playerx, playery, '@', 1 };
+  struct object npc = { 3, 4, '@', 2 };
 
   struct object *objects[] = {&npc, &player};
   int object_count = sizeof(objects) / sizeof(struct object *);
@@ -218,6 +225,8 @@ int main(int argc, char *argv[]) {
     endwin();
     return(1);
   }
+  wbkgd(con, COLOR_PAIR(3));
+  wrefresh(con);
 
   /* create the map */
   map_make();
@@ -235,8 +244,8 @@ int main(int argc, char *argv[]) {
     wrefresh(con);
 
     /* todo: make array forloop and clear all */
-    for (i = 0; i < object_count; i++)
-      object_clear(con, objects[i]);
+    /* for (i = 0; i < object_count; i++) */
+    /*   object_clear(con, objects[i]); */
 
     // if handle_keys returns 1, exit
     // otherwise, move character
