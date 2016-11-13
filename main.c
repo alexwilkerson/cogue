@@ -18,8 +18,10 @@ struct tile {
   short blocked;
   short blocked_sight;
 };
+/* global map */
+struct tile map[MAP_HEIGHT][MAP_WIDTH];
 
-void map_make(struct tile map[MAP_HEIGHT][MAP_WIDTH])
+void map_make()
 {
   int i, j;
 
@@ -40,7 +42,7 @@ void map_make(struct tile map[MAP_HEIGHT][MAP_WIDTH])
 
 }
 
-void map_draw(WINDOW *win, struct tile map[MAP_HEIGHT][MAP_WIDTH])
+void map_draw(WINDOW *win)
 {
   int i, j;
   for (i = 0; i < MAP_HEIGHT; i++) {
@@ -50,7 +52,7 @@ void map_draw(WINDOW *win, struct tile map[MAP_HEIGHT][MAP_WIDTH])
   }
 }
 
-void object_move(struct tile map[MAP_HEIGHT][MAP_WIDTH], struct object *o, int x, int y) {
+void object_move(struct object *o, int x, int y) {
   if (((o->x + x) >= 0)           && \
       ((o->x + x) < MAP_WIDTH)    && \
       ((o->y + y) >= 0)           && \
@@ -83,7 +85,7 @@ void screen_setup()
   /* init_pair(1, COLOR_RED, 0); */
 }
 
-int handle_keys(WINDOW *con, struct tile map[MAP_HEIGHT][MAP_WIDTH], struct object *p)
+int handle_keys(WINDOW *con, struct object *p)
 {
   switch (getch()) {
     case 'q':
@@ -93,45 +95,45 @@ int handle_keys(WINDOW *con, struct tile map[MAP_HEIGHT][MAP_WIDTH], struct obje
     case KEY_UP:
     case 'k':
     case 'K':
-      object_move(map, p, 0, -1);
+      object_move(p, 0, -1);
       break;
 
     case KEY_DOWN:
     case 'j':
     case 'J':
-      object_move(map, p, 0, 1);
+      object_move(p, 0, 1);
       break;
 
     case KEY_LEFT:
     case 'h':
     case 'H':
-      object_move(map, p, -1, 0);
+      object_move(p, -1, 0);
       break;
 
     case KEY_RIGHT:
     case 'l':
     case 'L':
-      object_move(map, p, 1, 0);
+      object_move(p, 1, 0);
       break;
 
     case 'y':
     case 'Y':
-      object_move(map, p, -1, -1);
+      object_move(p, -1, -1);
       break;
 
     case 'u':
     case 'U':
-      object_move(map, p, 1, -1);
+      object_move(p, 1, -1);
       break;
 
     case 'b':
     case 'B':
-      object_move(map, p, -1, 1);
+      object_move(p, -1, 1);
       break;
 
     case 'n':
     case 'N':
-      object_move(map, p, 1, 1);
+      object_move(p, 1, 1);
       break;
 
     default:
@@ -165,12 +167,11 @@ int main(int argc, char *argv[]) {
   }
 
   /* create the map */
-  struct tile map[MAP_HEIGHT][MAP_WIDTH];
-  map_make(map);
+  map_make();
 
   /* main game loop */
   while (1) {
-    map_draw(con, map);
+    map_draw(con);
 
     // display player
     for (i = 0; i < object_count; i++) {
@@ -186,7 +187,7 @@ int main(int argc, char *argv[]) {
 
     // if handle_keys returns 1, exit
     // otherwise, move character
-    if ((handle_keys(con, map, &player)))
+    if ((handle_keys(con, &player)))
       break;
   }
 
