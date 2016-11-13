@@ -10,9 +10,21 @@ struct object {
   char ch;
 };
 
+struct tile {
+  char ch;
+};
+
 void object_move(struct object *o, int x, int y) {
-  (*o).x += x;
-  (*o).y += y;
+  o->x += x;
+  o->y += y;
+}
+
+void object_draw(struct object *o) {
+  mvaddch(o->y, o->x, o->ch);
+}
+
+void object_clear(struct object *o) {
+  mvaddch(o->y, o->x, ' ');
 }
 
 void screen_setup()
@@ -39,57 +51,57 @@ int handle_keys(struct object *p)
     case KEY_UP:
     case 'k':
     case 'K':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).y -= 1;
+      object_clear(p);
+      p->y--;
       break;
 
     case KEY_DOWN:
     case 'j':
     case 'J':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).y += 1;
+      object_clear(p);
+      p->y++;
       break;
 
     case KEY_LEFT:
     case 'h':
     case 'H':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).x -= 1;
+      object_clear(p);
+      p->x--;
       break;
 
     case KEY_RIGHT:
     case 'l':
     case 'L':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).x += 1;
+      object_clear(p);
+      p->x++;
       break;
 
     case 'y':
     case 'Y':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).x -= 1;
-      (*p).y -= 1;
+      object_clear(p);
+      p->x--;
+      p->y--;
       break;
 
     case 'u':
     case 'U':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).x += 1;
-      (*p).y -= 1;
+      object_clear(p);
+      p->x++;
+      p->y--;
       break;
 
     case 'b':
     case 'B':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).x -= 1;
-      (*p).y += 1;
+      object_clear(p);
+      p->x--;
+      p->y++;
       break;
 
     case 'n':
     case 'N':
-      mvaddch((*p).y, (*p).x, ' ');
-      (*p).x += 1;
-      (*p).y += 1;
+      object_clear(p);
+      p->x++;
+      p->y++;
       break;
 
     default:
@@ -111,7 +123,7 @@ int main(int argc, char *argv[]) {
   /* main game loop */
   while (1) {
     // move player
-    mvaddch(player.y, player.x, player.ch);
+    object_draw(&player);
 
     // if handle_keys returns 1, exit
     // otherwise, move character
