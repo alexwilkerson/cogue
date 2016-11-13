@@ -4,7 +4,18 @@
 #define SCREEN_WIDTH  80
 #define SCREEN_HEIGHT 40
 
-void screenSetup()
+struct object {
+  int x;
+  int y;
+  char ch;
+};
+
+void object_move(struct object *o, int x, int y) {
+  (*o).x += x;
+  (*o).y += y;
+}
+
+void screen_setup()
 {
   initscr(); // creates stdscr
   noecho(); // disables typing on screen
@@ -15,10 +26,10 @@ void screenSetup()
   /* start_color(); */
 
   /* color definitions */
-  /* init_pair(1, COLOR_RED, COLOR_BLACK); */
+  /* init_pair(1, COLOR_RED, 0); */
 }
 
-int handle_keys(int *y, int *x)
+int handle_keys(struct object *p)
 {
   switch (getch()) {
     case 'q':
@@ -28,57 +39,57 @@ int handle_keys(int *y, int *x)
     case KEY_UP:
     case 'k':
     case 'K':
-      mvaddch(*y, *x, ' ');
-      *y -= 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).y -= 1;
       break;
 
     case KEY_DOWN:
     case 'j':
     case 'J':
-      mvaddch(*y, *x, ' ');
-      *y += 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).y += 1;
       break;
 
     case KEY_LEFT:
     case 'h':
     case 'H':
-      mvaddch(*y, *x, ' ');
-      *x -= 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).x -= 1;
       break;
 
     case KEY_RIGHT:
     case 'l':
     case 'L':
-      mvaddch(*y, *x, ' ');
-      *x += 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).x += 1;
       break;
 
     case 'y':
     case 'Y':
-      mvaddch(*y, *x, ' ');
-      *x -= 1;
-      *y -= 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).x -= 1;
+      (*p).y -= 1;
       break;
 
     case 'u':
     case 'U':
-      mvaddch(*y, *x, ' ');
-      *x += 1;
-      *y -= 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).x += 1;
+      (*p).y -= 1;
       break;
 
     case 'b':
     case 'B':
-      mvaddch(*y, *x, ' ');
-      *x -= 1;
-      *y += 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).x -= 1;
+      (*p).y += 1;
       break;
 
     case 'n':
     case 'N':
-      mvaddch(*y, *x, ' ');
-      *x += 1;
-      *y += 1;
+      mvaddch((*p).y, (*p).x, ' ');
+      (*p).x += 1;
+      (*p).y += 1;
       break;
 
     default:
@@ -92,17 +103,19 @@ int main(int argc, char *argv[]) {
   int playerx = SCREEN_WIDTH / 2;
   int playery = SCREEN_HEIGHT / 2;
 
+  struct object player = { playerx, playery, '@' };
+
   /* set up ncurses */
-  screenSetup();
+  screen_setup();
 
   /* main game loop */
   while (1) {
     // move player
-    mvaddch(playery, playerx, '@');
+    mvaddch(player.y, player.x, player.ch);
 
     // if handle_keys returns 1, exit
     // otherwise, move character
-    if ((handle_keys(&playery, &playerx)))
+    if ((handle_keys(&player)))
       break;
   }
 
