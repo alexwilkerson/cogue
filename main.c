@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <ncurses.h>
 
+#define true  1
+#define false 0
+
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -10,78 +13,85 @@
 #define MAP_WIDTH  48
 #define MAP_HEIGHT 25
 
-struct object {
+typedef struct object {
   int x;
   int y;
   char ch;
   int color;
-};
+} object;
 
-struct tile {
+object *new_object()
+{
+  return (object *)malloc(sizeof(object));
+}
+
+typedef struct tile {
   char ch;
   short blocked;
   short block_sight;
-};
+} tile;
 /* global map */
-struct tile map[MAP_HEIGHT][MAP_WIDTH];
+tile map[MAP_WIDTH][MAP_HEIGHT];
 
-struct rect {
+typedef struct rect {
   int x1;
   int y1;
   int x2;
   int y2;
-};
+  int centerx;
+  int centery;
+} rect;
 
-struct rect create_rect(int x, int y, int w, int h)
+rect create_rect(int x, int y, int w, int h)
 {
-  struct rect r = { x, y, x + w, y + h };
+  rect r = { x, y, x + w, y + h, (x + w) / 2, (y + h) / 2 };
   return r;
 }
 
-void create_room(struct rect room)
+void create_room(rect room)
 {
-  int i, j;
-  for (i = room.y1; i < room.y2; i++) {
-    for (j = room.x1; j < room.x2; j++) {
-      map[i][j].blocked = 0;
-      map[i][j].block_sight = 0;
+  int x, y;
+  for (x = room.x1; x < room.x2; x++) {
+    for (y = room.y1; y < room.y2; y++) {
+      map[x][y].blocked = 0;
+      map[x][y].block_sight = 0;
     }
   }
 }
 
 void create_h_tunnel(int x1, int x2, int y)
 {
-  int i;
-  for (i = min(x1, x2); i < max(x1, x2); i++) {
-    map[y][i].blocked = 0;
-    map[y][i].block_sight = 0;
+  int x;
+  for (x = min(x1, x2); x < max(x1, x2); x++) {
+    map[x][y].blocked = 0;
+    map[x][y].block_sight = 0;
   }
 }
 
 void create_v_tunnel(int y1, int y2, int x)
 {
-  int i;
-  for (i = min(y1, y2); i < max(y1, y2); i++) {
-    map[i][x].blocked = 0;
-    map[i][x].block_sight = 0;
+  int y;
+  for (y = min(y1, y2); y < max(y1, y2); y++) {
+    map[x][y].blocked = 0;
+    map[x][y].block_sight = 0;
   }
 }
 
 void map_make()
 {
-  int i, j;
+  int x, y;
 
-  struct tile base_tile = { '#', 1, 1 };
+  tile base_tile = { '#', 1, 1 };
 
-  for (i = 0; i < MAP_HEIGHT; i++) {
-    for (j = 0; j < MAP_WIDTH; j++) {
-      map[i][j] = base_tile;
+  for (x = 0; x < MAP_WIDTH; x++) {
+    for (y = 0; y < MAP_HEIGHT; y++) {
+      map[x][y] = base_tile;
     }
   }
 
-  struct rect room1 = create_rect(4, 5, 15, 5);
-  struct rect room2 = create_rect(1, 1, 5, 5);
-  struct rect room3 = create_rect(30, 12, 10, 10);
+  rect room1 = create_rect(4, 5, 15, 5);
+  rect room2 = create_rect(1, 1, 5, 5);
+  rect room3 = create_rect(30, 12, 10, 10);
   create_room(room1);
   create_room(room2);
   create_room(room3);
@@ -92,38 +102,38 @@ void map_make()
 
 void map_draw(WINDOW *win)
 {
-  int i, j;
+  int x, y;
   int wall;
 
-  for (i = 0; i < MAP_HEIGHT; i++) {
-    for (j = 0; j < MAP_WIDTH; j++) {
-      wall = map[i][j].blocked;
+  for (x = 0; x < MAP_WIDTH; x++) {
+    for (y = 0; y < MAP_HEIGHT; y++) {
+      wall = map[x][y].blocked;
       if (wall)
-        mvwaddch(win, i, j, '#');
+        mvwaddch(win, y, x, '#');
       else
-        mvwaddch(win, i, j, '.');
+        mvwaddch(win, y, x, '.');
     }
   }
 }
 
-void object_move(struct object *o, int x, int y) {
+void object_move(object *o, int x, int y) {
   if (((o->x + x) >= 0)           && \
       ((o->x + x) < MAP_WIDTH)    && \
       ((o->y + y) >= 0)           && \
-      ((o->y + y) < MAP_HEIGHT)  && \
-      (!map[o->y + y][o->x + x].blocked)) {
+      ((o->y + y) < MAP_HEIGHT)   && \
+      (!map[o->x + x][o->y + y].blocked)) {
     o->x += x;
     o->y += y;
   }
 }
 
-void object_draw(WINDOW *win, struct object *o) {
+void object_draw(WINDOW *win, object *o) {
   wattron(win, COLOR_PAIR(o->color));
   mvwaddch(win, o->y, o->x, o->ch);
   wattroff(win, COLOR_PAIR(o->color));
 }
 
-void object_clear(WINDOW *win, struct object *o) {
+void object_clear(WINDOW *win, object *o) {
   mvwaddch(win, o->y, o->x, ' ');
 }
 
@@ -145,7 +155,7 @@ void screen_setup()
   refresh();
 }
 
-int handle_keys(WINDOW *con, struct object *p)
+int handle_keys(WINDOW *con, object *p)
 {
   switch (getch()) {
     case 'q':
@@ -211,11 +221,11 @@ int main(int argc, char *argv[]) {
   int playerx = 10;
   int playery = 8;
 
-  struct object player = { playerx, playery, '@', 1 };
-  struct object npc = { 3, 4, '@', 2 };
+  object player = { playerx, playery, '@', 1 };
+  object npc = { 3, 4, '@', 2 };
 
-  struct object *objects[] = {&npc, &player};
-  int object_count = sizeof(objects) / sizeof(struct object *);
+  object *objects[] = {&npc, &player};
+  int object_count = sizeof(objects) / sizeof(object *);
 
   /* set up ncurses */
   screen_setup();
