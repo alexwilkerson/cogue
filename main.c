@@ -115,8 +115,8 @@ void map_make(object *player)
   rect room;
 
   for (i = 0; i < MAX_ROOMS; i++) {
-    roomx = rand() % (MAP_WIDTH - ROOM_MAX_SIZE);
-    roomy = rand() % (MAP_HEIGHT - ROOM_MAX_SIZE);
+    roomx = rand() % (MAP_WIDTH - ROOM_MAX_SIZE) + 1;
+    roomy = rand() % (MAP_HEIGHT - ROOM_MAX_SIZE) + 1;
     roomw = (rand() % (ROOM_MAX_SIZE - ROOM_MIN_SIZE)) + ROOM_MIN_SIZE;
     roomh = (rand() % (ROOM_MAX_SIZE - ROOM_MIN_SIZE)) + ROOM_MIN_SIZE;
     room = create_rect(roomx, roomy, roomw, roomh);
@@ -221,6 +221,11 @@ int handle_keys(WINDOW *con, object *p)
     case 'Q':
       return 1;
 
+    case 'r':
+    case 'R':
+      map_make(p);
+      break;
+
     case KEY_UP:
     case 'k':
     case 'K':
@@ -282,9 +287,9 @@ int main(int argc, char *argv[]) {
   int playery = 8;
 
   object player = { playerx, playery, '@', 1 };
-  object npc = { 3, 4, '@', 2 };
+  /* object npc = { 3, 4, '@', 2 }; */
 
-  object *objects[] = {&npc, &player};
+  object *objects[] = {/* &npc, */&player};
   int object_count = sizeof(objects) / sizeof(object *);
 
   /* set up ncurses */
