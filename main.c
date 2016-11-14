@@ -1,8 +1,10 @@
 #include <stdlib.h>
+#include <time.h>
 #include <ncurses.h>
 
 #define true  1
 #define false 0
+#define boolean char
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -10,8 +12,12 @@
 #define SCREEN_WIDTH  80
 #define SCREEN_HEIGHT 40
 
-#define MAP_WIDTH  48
+#define MAP_WIDTH  80
 #define MAP_HEIGHT 25
+
+#define ROOM_MAX_SIZE 10
+#define ROOM_MIN_SIZE 6
+#define MAX_ROOMS     30
 
 typedef struct object {
   int x;
@@ -44,8 +50,13 @@ typedef struct rect {
 
 rect create_rect(int x, int y, int w, int h)
 {
-  rect r = { x, y, x + w, y + h, (x + w) / 2, (y + h) / 2 };
+  rect r = { x, y, x + w, y + h, (x + x + w) / 2, (y + y + h) / 2 };
   return r;
+}
+
+rect *new_rect()
+{
+  return (rect *)malloc(sizeof(rect));
 }
 
 void create_room(rect room)
@@ -59,25 +70,32 @@ void create_room(rect room)
   }
 }
 
+boolean intersect(rect room1, rect room2) {
+  return (room1.x1 <= room2.x2 && \
+          room1.x2 >= room2.x1 && \
+          room1.y1 <= room2.y2 && \
+          room1.y2 >= room2.y1);
+}
+
 void create_h_tunnel(int x1, int x2, int y)
 {
   int x;
-  for (x = min(x1, x2); x < max(x1, x2); x++) {
-    map[x][y].blocked = 0;
-    map[x][y].block_sight = 0;
+  for (x = min(x1, x2); x < max(x1, x2) + 1; x++) {
+    map[x][y].blocked = false;
+    map[x][y].block_sight = false;
   }
 }
 
 void create_v_tunnel(int y1, int y2, int x)
 {
   int y;
-  for (y = min(y1, y2); y < max(y1, y2); y++) {
-    map[x][y].blocked = 0;
-    map[x][y].block_sight = 0;
+  for (y = min(y1, y2); y < max(y1, y2) + 1; y++) {
+    map[x][y].blocked = false;
+    map[x][y].block_sight = false;
   }
 }
 
-void map_make()
+void map_make(object *player)
 {
   int x, y;
 
@@ -89,15 +107,56 @@ void map_make()
     }
   }
 
-  rect room1 = create_rect(4, 5, 15, 5);
-  rect room2 = create_rect(1, 1, 5, 5);
-  rect room3 = create_rect(30, 12, 10, 10);
-  create_room(room1);
-  create_room(room2);
-  create_room(room3);
+  rect rooms[MAX_ROOMS];
+  int i, j;
+  int roomx, roomy, roomw, roomh;
+  int prev_centerx, prev_centery;
+  int num_rooms = 0;
+  rect room;
 
-  create_h_tunnel(6, 35, 6);
-  create_v_tunnel(6, 18, 35);
+  for (i = 0; i < MAX_ROOMS; i++) {
+    roomx = rand() % (MAP_WIDTH - ROOM_MAX_SIZE);
+    roomy = rand() % (MAP_HEIGHT - ROOM_MAX_SIZE);
+    roomw = (rand() % (ROOM_MAX_SIZE - ROOM_MIN_SIZE)) + ROOM_MIN_SIZE;
+    roomh = (rand() % (ROOM_MAX_SIZE - ROOM_MIN_SIZE)) + ROOM_MIN_SIZE;
+    room = create_rect(roomx, roomy, roomw, roomh);
+
+    boolean failed = false;
+    for (j = 0; j < num_rooms; j++) {
+      if (intersect(room, rooms[j])) {
+        failed = true;
+        break;
+      }
+    }
+
+    if (failed == false) {
+      // no intersections, so this room is valid
+
+      create_room(room);
+
+      if (num_rooms == 0) {
+        player->x = room.centerx;
+        player->y = room.centery;
+      } else {
+        // all rooms after the first
+        // connect it to the previous room with a tunnel
+
+        // center coordinates of previous room
+        prev_centerx = rooms[num_rooms - 1].centerx;
+        prev_centery = rooms[num_rooms - 1].centery;
+
+        if ((rand() % 2) == 1) {
+          create_h_tunnel(prev_centerx, room.centerx, prev_centery);
+          create_v_tunnel(prev_centery, room.centery, room.centerx);
+        } else {
+          create_v_tunnel(prev_centery, room.centery, prev_centerx);
+          create_h_tunnel(prev_centerx, room.centerx, room.centery);
+        }
+      }
+      rooms[num_rooms] = room;
+      num_rooms++;
+    }
+  }
 }
 
 void map_draw(WINDOW *win)
@@ -214,6 +273,7 @@ int handle_keys(WINDOW *con, object *p)
 }
 
 int main(int argc, char *argv[]) {
+  srand(time(NULL));
   int i;
 
   WINDOW *con;
@@ -239,7 +299,7 @@ int main(int argc, char *argv[]) {
   wrefresh(con);
 
   /* create the map */
-  map_make();
+  map_make(&player);
 
   /* main game loop */
   while (1) {
